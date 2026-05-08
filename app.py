@@ -1,254 +1,134 @@
-import streamlit as st
-import requests
-import folium
+```python id="jlwm321"
+from flask import Flask
+from flask import jsonify
+from flask import request
 
-from streamlit_folium import st_folium
+from flask_cors import CORS
 
-# =========================================
-# BACKEND API URL
-# =========================================
+from mongo_db import train_collection
 
-API_URL = "https://trainzo-backend-9umr.onrender.com"
+from services.groq_service import ask_groq
+from services.train_service import get_train_data
 
-# =========================================
-# PAGE CONFIG
-# =========================================
+import os
 
-st.set_page_config(
-    page_title="Where Is My Train AI",
-    layout="wide"
-)
+app = Flask(__name__)
+
+CORS(app)
 
 # =========================================
-# TITLE
+# HOME ROUTE
 # =========================================
 
-st.title("🚆 Where Is My Train AI")
+@app.route("/")
 
-st.markdown(
-    "AI-powered live train tracking system"
-)
+def home():
 
-# =========================================
-# SESSION STATE
-# =========================================
-
-if "train_data" not in st.session_state:
-    st.session_state.train_data = None
-
-if "history_data" not in st.session_state:
-    st.session_state.history_data = []
-
-if "ai_reply" not in st.session_state:
-    st.session_state.ai_reply = ""
+    return jsonify({
+        "message":
+        "Where Is My Train API Running"
+    })
 
 # =========================================
-# TRAIN SEARCH
+# LIVE TRAIN STATUS
 # =========================================
 
-train_no = st.text_input(
-    "Enter Train Number"
-)
+@app.route("/api/live/<train_no>")
 
-if st.button("Search Train"):
+def live_status(train_no):
 
     try:
 
-        response = requests.get(
-            f"{API_URL}/api/live/{train_no}"
+        data = get_train_data(train_no)
+
+        # Save into MongoDB
+        result = train_collection.insert_one(data)
+
+        # Convert ObjectId to string
+        data["_id"] = str(
+            result.inserted_id
         )
 
-        if response.status_code == 200:
-
-            data = response.json()
-
-            st.session_state.train_data = data
-
-        else:
-
-            st.error(
-                "Backend request failed"
-            )
-
-            st.write(
-                response.text
-            )
+        return jsonify(data)
 
     except Exception as e:
 
-        st.error(
-            f"Application Error: {e}"
-        )
+        return jsonify({
+            "error": str(e)
+        }), 500
 
 # =========================================
-# SHOW TRAIN DATA
+# TRAIN HISTORY
 # =========================================
 
-if st.session_state.train_data:
+@app.route("/api/history")
 
-    data = st.session_state.train_data
-
-    st.success(
-        "Train Data Loaded"
-    )
-
-    col1, col2, col3 = st.columns(3)
-
-    col1.metric(
-        "Train",
-        data["trainNo"]
-    )
-
-    col2.metric(
-        "Speed",
-        f"{data['speed']} km/h"
-    )
-
-    col3.metric(
-        "Updated",
-        data["lastUpdated"]
-    )
-
-    # =====================================
-    # MAP
-    # =====================================
-
-    st.subheader(
-        "🗺️ Live Train Location"
-    )
-
-    m = folium.Map(
-
-        location=[
-            data["latitude"],
-            data["longitude"]
-        ],
-
-        zoom_start=7
-    )
-
-    folium.Marker(
-
-        [
-            data["latitude"],
-            data["longitude"]
-        ],
-
-        popup="🚆 Train Location"
-
-    ).add_to(m)
-
-    st_folium(
-        m,
-        width=1200,
-        height=500
-    )
-
-# =========================================
-# AI ASSISTANT
-# =========================================
-
-st.divider()
-
-st.subheader(
-    "🤖 AI Assistant"
-)
-
-question = st.text_input(
-    "Ask AI about train"
-)
-
-if st.button("Ask AI"):
+def history():
 
     try:
 
-        response = requests.post(
+        history_data = []
 
-            f"{API_URL}/api/groq",
+        for item in train_collection.find():
 
-            json={
-                "question": question
-            }
-        )
-
-        if response.status_code == 200:
-
-            data = response.json()
-
-            st.session_state.ai_reply = data["reply"]
-
-        else:
-
-            st.error(
-                "AI request failed"
+            item["_id"] = str(
+                item["_id"]
             )
 
-            st.write(
-                response.text
-            )
+            history_data.append(item)
+
+        return jsonify(history_data)
 
     except Exception as e:
 
-        st.error(
-            f"AI Error: {e}"
-        )
+        return jsonify({
+            "error": str(e)
+        }), 500
 
 # =========================================
-# SHOW AI RESPONSE
+# GROQ AI CHAT
 # =========================================
 
-if st.session_state.ai_reply:
-
-    st.info(
-        st.session_state.ai_reply
-    )
-
-# =========================================
-# HISTORY
-# =========================================
-
-st.divider()
-
-st.subheader(
-    "📜 Train Search History"
+@app.route(
+    "/api/groq",
+    methods=["POST"]
 )
 
-if st.button("Load History"):
+def groq_chat():
 
     try:
 
-        response = requests.get(
-            f"{API_URL}/api/history"
+        body = request.json
+
+        question = body.get(
+            "question"
         )
 
-        if response.status_code == 200:
+        reply = ask_groq(question)
 
-            history = response.json()
-
-            st.session_state.history_data = history
-
-        else:
-
-            st.error(
-                "History request failed"
-            )
-
-            st.write(
-                response.text
-            )
+        return jsonify({
+            "reply": reply
+        })
 
     except Exception as e:
 
-        st.error(
-            f"History Error: {e}"
+        return jsonify({
+            "error": str(e)
+        }), 500
+
+# =========================================
+# MAIN
+# =========================================
+
+if __name__ == "__main__":
+
+    app.run(
+        host="0.0.0.0",
+        port=int(
+            os.environ.get(
+                "PORT",
+                5000
+            )
         )
-
-# =========================================
-# SHOW HISTORY
-# =========================================
-
-if st.session_state.history_data:
-
-    st.dataframe(
-        st.session_state.history_data
     )
+```
