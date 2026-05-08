@@ -13,6 +13,10 @@ app = Flask(__name__)
 
 CORS(app)
 
+# =========================================
+# HOME ROUTE
+# =========================================
+
 @app.route("/")
 
 def home():
@@ -22,29 +26,66 @@ def home():
         "Where Is My Train API Running"
     })
 
+# =========================================
+# LIVE TRAIN STATUS
+# =========================================
+
 @app.route("/api/live/<train_no>")
 
 def live_status(train_no):
 
-    data = get_train_data(train_no)
+    try:
 
-    train_collection.insert_one(data)
+        data = get_train_data(train_no)
 
-    return jsonify(data)
+        # Save into MongoDB
+        result = train_collection.insert_one(data)
+
+        # Convert ObjectId to string
+        data["_id"] = str(
+            result.inserted_id
+        )
+
+        return jsonify(data)
+
+    except Exception as e:
+
+        return jsonify({
+            "error": str(e)
+        }), 500
+
+# =========================================
+# TRAIN HISTORY
+# =========================================
 
 @app.route("/api/history")
 
 def history():
 
-    history = list(
+    try:
 
-        train_collection.find(
-            {},
-            {"_id": 0}
-        )
-    )
+        history_data = []
 
-    return jsonify(history)
+        for item in train_collection.find():
+
+            # Convert ObjectId
+            item["_id"] = str(
+                item["_id"]
+            )
+
+            history_data.append(item)
+
+        return jsonify(history_data)
+
+    except Exception as e:
+
+        return jsonify({
+            "error": str(e)
+        }), 500
+
+# =========================================
+# GROQ AI CHAT
+# =========================================
 
 @app.route(
     "/api/groq",
@@ -53,17 +94,29 @@ def history():
 
 def groq_chat():
 
-    body = request.json
+    try:
 
-    question = body.get(
-        "question"
-    )
+        body = request.json
 
-    reply = ask_groq(question)
+        question = body.get(
+            "question"
+        )
 
-    return jsonify({
-        "reply": reply
-    })
+        reply = ask_groq(question)
+
+        return jsonify({
+            "reply": reply
+        })
+
+    except Exception as e:
+
+        return jsonify({
+            "error": str(e)
+        }), 500
+
+# =========================================
+# MAIN
+# =========================================
 
 if __name__ == "__main__":
 
