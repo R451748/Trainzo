@@ -4,7 +4,7 @@ from flask import request
 
 from flask_cors import CORS
 
-from database import train_collection
+from mongo_db import train_collection
 
 from services.groq_service import ask_groq
 from services.train_service import get_train_data
