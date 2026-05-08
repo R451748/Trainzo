@@ -1,127 +1,254 @@
-from flask import Flask
-from flask import jsonify
-from flask import request
+import streamlit as st
+import requests
+import folium
 
-from flask_cors import CORS
-
-from mongo_db import train_collection
-
-from services.groq_service import ask_groq
-from services.train_service import get_train_data
-
-app = Flask(__name__)
-
-CORS(app)
+from streamlit_folium import st_folium
 
 # =========================================
-# HOME ROUTE
+# BACKEND API URL
 # =========================================
 
-@app.route("/")
-
-def home():
-
-    return jsonify({
-        "message":
-        "Where Is My Train API Running"
-    })
+API_URL = "https://trainzo-backend-9umr.onrender.com"
 
 # =========================================
-# LIVE TRAIN STATUS
+# PAGE CONFIG
 # =========================================
 
-@app.route("/api/live/<train_no>")
-
-def live_status(train_no):
-
-    try:
-
-        data = get_train_data(train_no)
-
-        # Save into MongoDB
-        result = train_collection.insert_one(data)
-
-        # Convert ObjectId to string
-        data["_id"] = str(
-            result.inserted_id
-        )
-
-        return jsonify(data)
-
-    except Exception as e:
-
-        return jsonify({
-            "error": str(e)
-        }), 500
-
-# =========================================
-# TRAIN HISTORY
-# =========================================
-
-@app.route("/api/history")
-
-def history():
-
-    try:
-
-        history_data = []
-
-        for item in train_collection.find():
-
-            # Convert ObjectId
-            item["_id"] = str(
-                item["_id"]
-            )
-
-            history_data.append(item)
-
-        return jsonify(history_data)
-
-    except Exception as e:
-
-        return jsonify({
-            "error": str(e)
-        }), 500
-
-# =========================================
-# GROQ AI CHAT
-# =========================================
-
-@app.route(
-    "/api/groq",
-    methods=["POST"]
+st.set_page_config(
+    page_title="Where Is My Train AI",
+    layout="wide"
 )
 
-def groq_chat():
+# =========================================
+# TITLE
+# =========================================
+
+st.title("🚆 Where Is My Train AI")
+
+st.markdown(
+    "AI-powered live train tracking system"
+)
+
+# =========================================
+# SESSION STATE
+# =========================================
+
+if "train_data" not in st.session_state:
+    st.session_state.train_data = None
+
+if "history_data" not in st.session_state:
+    st.session_state.history_data = []
+
+if "ai_reply" not in st.session_state:
+    st.session_state.ai_reply = ""
+
+# =========================================
+# TRAIN SEARCH
+# =========================================
+
+train_no = st.text_input(
+    "Enter Train Number"
+)
+
+if st.button("Search Train"):
 
     try:
 
-        body = request.json
-
-        question = body.get(
-            "question"
+        response = requests.get(
+            f"{API_URL}/api/live/{train_no}"
         )
 
-        reply = ask_groq(question)
+        if response.status_code == 200:
 
-        return jsonify({
-            "reply": reply
-        })
+            data = response.json()
+
+            st.session_state.train_data = data
+
+        else:
+
+            st.error(
+                "Backend request failed"
+            )
+
+            st.write(
+                response.text
+            )
 
     except Exception as e:
 
-        return jsonify({
-            "error": str(e)
-        }), 500
+        st.error(
+            f"Application Error: {e}"
+        )
 
 # =========================================
-# MAIN
+# SHOW TRAIN DATA
 # =========================================
 
-if __name__ == "__main__":
+if st.session_state.train_data:
 
-    app.run(
-        host="0.0.0.0",
-        port=5000,
-        debug=True
+    data = st.session_state.train_data
+
+    st.success(
+        "Train Data Loaded"
+    )
+
+    col1, col2, col3 = st.columns(3)
+
+    col1.metric(
+        "Train",
+        data["trainNo"]
+    )
+
+    col2.metric(
+        "Speed",
+        f"{data['speed']} km/h"
+    )
+
+    col3.metric(
+        "Updated",
+        data["lastUpdated"]
+    )
+
+    # =====================================
+    # MAP
+    # =====================================
+
+    st.subheader(
+        "🗺️ Live Train Location"
+    )
+
+    m = folium.Map(
+
+        location=[
+            data["latitude"],
+            data["longitude"]
+        ],
+
+        zoom_start=7
+    )
+
+    folium.Marker(
+
+        [
+            data["latitude"],
+            data["longitude"]
+        ],
+
+        popup="🚆 Train Location"
+
+    ).add_to(m)
+
+    st_folium(
+        m,
+        width=1200,
+        height=500
+    )
+
+# =========================================
+# AI ASSISTANT
+# =========================================
+
+st.divider()
+
+st.subheader(
+    "🤖 AI Assistant"
+)
+
+question = st.text_input(
+    "Ask AI about train"
+)
+
+if st.button("Ask AI"):
+
+    try:
+
+        response = requests.post(
+
+            f"{API_URL}/api/groq",
+
+            json={
+                "question": question
+            }
+        )
+
+        if response.status_code == 200:
+
+            data = response.json()
+
+            st.session_state.ai_reply = data["reply"]
+
+        else:
+
+            st.error(
+                "AI request failed"
+            )
+
+            st.write(
+                response.text
+            )
+
+    except Exception as e:
+
+        st.error(
+            f"AI Error: {e}"
+        )
+
+# =========================================
+# SHOW AI RESPONSE
+# =========================================
+
+if st.session_state.ai_reply:
+
+    st.info(
+        st.session_state.ai_reply
+    )
+
+# =========================================
+# HISTORY
+# =========================================
+
+st.divider()
+
+st.subheader(
+    "📜 Train Search History"
+)
+
+if st.button("Load History"):
+
+    try:
+
+        response = requests.get(
+            f"{API_URL}/api/history"
+        )
+
+        if response.status_code == 200:
+
+            history = response.json()
+
+            st.session_state.history_data = history
+
+        else:
+
+            st.error(
+                "History request failed"
+            )
+
+            st.write(
+                response.text
+            )
+
+    except Exception as e:
+
+        st.error(
+            f"History Error: {e}"
+        )
+
+# =========================================
+# SHOW HISTORY
+# =========================================
+
+if st.session_state.history_data:
+
+    st.dataframe(
+        st.session_state.history_data
     )
