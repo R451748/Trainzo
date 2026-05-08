@@ -4,6 +4,8 @@ import folium
 
 from streamlit_folium import st_folium
 
+API_URL = "https://trainzo-backend-9umr.onrender.com"
+
 st.set_page_config(
     page_title="Where Is My Train AI",
     layout="wide"
@@ -22,7 +24,7 @@ train_no = st.text_input(
 if st.button("Search Train"):
 
     response = requests.get(
-        f"http://127.0.0.1:5000/api/live/{train_no}"
+        f"{API_URL}/api/live/{train_no}"
     )
 
     data = response.json()
@@ -89,7 +91,7 @@ if st.button("Ask AI"):
 
     response = requests.post(
 
-        "http://127.0.0.1:5000/api/groq",
+        f"{API_URL}/api/groq",
 
         json={
             "question": question
@@ -109,7 +111,7 @@ st.subheader(
 if st.button("Load History"):
 
     response = requests.get(
-        "http://127.0.0.1:5000/api/history"
+        f"{API_URL}/api/history"
     )
 
     history = response.json()
