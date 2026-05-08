@@ -1,0 +1,8 @@
+flask
+flask-cors
+requests
+python-dotenv
+streamlit
+folium
+streamlit-folium
+pymongo
