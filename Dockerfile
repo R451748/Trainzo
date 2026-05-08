@@ -9,6 +9,5 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 EXPOSE 5000
-EXPOSE 8501
 
-CMD ["sh", "-c", "python app.py & streamlit run frontend/streamlit_app.py --server.port=8501 --server.address=0.0.0.0"]
+CMD ["python", "app.py"]
