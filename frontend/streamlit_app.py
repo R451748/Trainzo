@@ -8,7 +8,7 @@ from streamlit_folium import st_folium
 # BACKEND API URL
 # =========================
 
-API_URL = "https://trainzo-backend-9umr.onrender.com/"
+API_URL = "https://trainzo-backend-9umr.onrender.com"
 
 # =========================
 # PAGE CONFIG
@@ -18,10 +18,6 @@ st.set_page_config(
     page_title="Where Is My Train AI",
     layout="wide"
 )
-
-# =========================
-# TITLE
-# =========================
 
 st.title("🚆 Where Is My Train AI")
 
@@ -45,24 +41,24 @@ if st.button("Search Train"):
             f"{API_URL}/api/live/{train_no}"
         )
 
-        # Debug response
         st.write(
             "Status Code:",
             response.status_code
         )
 
-        # If backend failed
+        st.write(
+            "Response:",
+            response.text
+        )
+
         if response.status_code != 200:
 
             st.error(
-                f"Backend Error: {response.status_code}"
+                "Backend request failed"
             )
-
-            st.write(response.text)
 
             st.stop()
 
-        # Parse JSON safely
         try:
 
             data = response.json()
@@ -70,19 +66,15 @@ if st.button("Search Train"):
         except Exception:
 
             st.error(
-                "Invalid JSON returned from backend"
+                "Backend did not return valid JSON"
             )
-
-            st.write(response.text)
 
             st.stop()
 
-        # Success Message
         st.success(
-            "Train Data Loaded Successfully"
+            "Train Data Loaded"
         )
 
-        # Metrics
         col1, col2, col3 = st.columns(3)
 
         col1.metric(
@@ -98,14 +90,6 @@ if st.button("Search Train"):
         col3.metric(
             "Updated",
             data["lastUpdated"]
-        )
-
-        # =========================
-        # MAP
-        # =========================
-
-        st.subheader(
-            "🗺️ Live Train Location"
         )
 
         m = folium.Map(
@@ -125,9 +109,7 @@ if st.button("Search Train"):
                 data["longitude"]
             ],
 
-            popup="🚆 Train Location",
-
-            tooltip="Train"
+            popup="🚆 Train Location"
 
         ).add_to(m)
 
@@ -170,33 +152,11 @@ if st.button("Ask AI"):
             }
         )
 
-        if response.status_code != 200:
+        st.write(response.text)
 
-            st.error(
-                f"AI Backend Error: {response.status_code}"
-            )
+        data = response.json()
 
-            st.write(response.text)
-
-            st.stop()
-
-        try:
-
-            data = response.json()
-
-        except Exception:
-
-            st.error(
-                "Invalid AI JSON response"
-            )
-
-            st.write(response.text)
-
-            st.stop()
-
-        st.info(
-            data["reply"]
-        )
+        st.info(data["reply"])
 
     except Exception as e:
 
@@ -222,29 +182,9 @@ if st.button("Load History"):
             f"{API_URL}/api/history"
         )
 
-        if response.status_code != 200:
+        st.write(response.text)
 
-            st.error(
-                f"History Error: {response.status_code}"
-            )
-
-            st.write(response.text)
-
-            st.stop()
-
-        try:
-
-            history = response.json()
-
-        except Exception:
-
-            st.error(
-                "Invalid History JSON"
-            )
-
-            st.write(response.text)
-
-            st.stop()
+        history = response.json()
 
         st.dataframe(history)
 
