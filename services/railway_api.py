@@ -19,7 +19,7 @@ HEADERS = {
 }
 
 # =========================================
-# SEARCH TRAINS BETWEEN STATIONS
+# TRAINS BETWEEN STATIONS
 # =========================================
 
 def search_trains(
@@ -31,7 +31,7 @@ def search_trains(
 
     url = (
         "https://irctc-api2.p.rapidapi.com/"
-        "trainBetweenStations"
+        "api/v3/trainBetweenStations"
     )
 
     querystring = {
@@ -65,7 +65,7 @@ def live_status(train_no):
 
     url = (
         "https://irctc-api2.p.rapidapi.com/"
-        "liveTrainStatus"
+        "api/v1/liveTrainStatus"
     )
 
     querystring = {
@@ -93,7 +93,7 @@ def train_schedule(train_no):
 
     url = (
         "https://irctc-api2.p.rapidapi.com/"
-        "trainSchedule"
+        "api/v1/trainSchedule"
     )
 
     querystring = {
