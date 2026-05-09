@@ -51,10 +51,15 @@ def search():
             "to"
         )
 
+        journey_date = request.args.get(
+            "date"
+        )
+
         data = search_trains(
 
             from_station,
-            to_station
+            to_station,
+            journey_date
         )
 
         return jsonify(data)

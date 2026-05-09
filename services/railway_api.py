@@ -28,7 +28,8 @@ HEADERS = {
 def search_trains(
 
     from_station,
-    to_station
+    to_station,
+    journey_date
 
 ):
 
@@ -43,7 +44,10 @@ def search_trains(
             from_station,
 
         "toStationCode":
-            to_station
+            to_station,
+
+        "dateOfJourney":
+            journey_date
     }
 
     response = requests.get(

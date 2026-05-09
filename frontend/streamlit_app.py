@@ -31,7 +31,7 @@ if "selected_train" not in st.session_state:
 # SEARCH UI
 # =========================================
 
-col1, col2 = st.columns(2)
+col1, col2, col3 = st.columns(3)
 
 with col1:
 
@@ -45,6 +45,13 @@ with col2:
     to_station = st.text_input(
         "To Station Code",
         placeholder="MAS"
+    )
+
+with col3:
+
+    journey_date = st.text_input(
+        "Journey Date",
+        placeholder="10-05-2026"
     )
 
 # =========================================
@@ -65,7 +72,10 @@ if st.button("🚆 Find Trains"):
                     from_station,
 
                 "to":
-                    to_station
+                    to_station,
+
+                "date":
+                    journey_date
             }
         )
 
