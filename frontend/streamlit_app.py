@@ -15,7 +15,7 @@ API_URL = "https://trainzo-backend-9umr.onrender.com"
 # =========================================
 
 st.set_page_config(
-    page_title="Where Is My Train AI",
+    page_title="Where Is My Train",
     layout="wide"
 )
 
@@ -23,86 +23,233 @@ st.set_page_config(
 # TITLE
 # =========================================
 
-st.title("🚆 Where Is My Train AI")
+st.title("🚆 Where Is My Train")
 
 st.markdown(
-    "AI-powered live train tracking system"
+    "Live Train Tracking System"
 )
 
 # =========================================
 # SESSION STATE
 # =========================================
 
-if "train_data" not in st.session_state:
-    st.session_state.train_data = None
+if "trains" not in st.session_state:
+    st.session_state.trains = []
 
-if "history_data" not in st.session_state:
-    st.session_state.history_data = []
+if "selected_train" not in st.session_state:
+    st.session_state.selected_train = None
 
 if "ai_reply" not in st.session_state:
     st.session_state.ai_reply = ""
 
 # =========================================
-# TRAIN SEARCH
+# SEARCH STATIONS
 # =========================================
 
-train_no = st.text_input(
-    "Enter Train Number"
-)
+col1, col2 = st.columns(2)
 
-if st.button("Search Train"):
+with col1:
+
+    from_station = st.text_input(
+        "From Station Code",
+        placeholder="SBC"
+    )
+
+with col2:
+
+    to_station = st.text_input(
+        "To Station Code",
+        placeholder="MAS"
+    )
+
+if st.button("🚆 Find Trains"):
 
     try:
 
         response = requests.get(
-            f"{API_URL}/api/live/{train_no}"
+
+            f"{API_URL}/api/search",
+
+            params={
+                "from": from_station,
+                "to": to_station
+            }
         )
 
         if response.status_code == 200:
 
             data = response.json()
 
-            st.session_state.train_data = data
+            if "data" in data:
+
+                st.session_state.trains = data["data"]
+
+            else:
+
+                st.error(
+                    "No trains found"
+                )
 
         else:
 
             st.error(
-                "Backend request failed"
+                "Search failed"
             )
 
     except Exception as e:
 
         st.error(
-            f"Application Error: {e}"
+            f"Search Error: {e}"
         )
 
 # =========================================
-# SHOW TRAIN DATA
+# TRAIN LIST
 # =========================================
 
-if st.session_state.train_data:
+if st.session_state.trains:
 
-    data = st.session_state.train_data
+    st.subheader(
+        "🚉 Available Trains"
+    )
 
-    st.success(
-        "Train Data Loaded"
+    for train in st.session_state.trains:
+
+        with st.container(border=True):
+
+            col1, col2, col3 = st.columns([5, 3, 2])
+
+            col1.markdown(
+
+                f"""
+                ### {train.get('train_number')}
+                {train.get('train_name')}
+                """
+            )
+
+            col2.markdown(
+
+                f"""
+                ⏰ {train.get('from_std')}
+                →
+                {train.get('to_std')}
+                """
+            )
+
+            if col3.button(
+
+                "Track",
+
+                key=train.get(
+                    "train_number"
+                )
+            ):
+
+                st.session_state.selected_train = (
+                    train.get(
+                        "train_number"
+                    )
+                )
+
+# =========================================
+# LIVE TRACKING
+# =========================================
+
+if st.session_state.selected_train:
+
+    train_no = (
+        st.session_state.selected_train
+    )
+
+    st.divider()
+
+    st.subheader(
+        f"🚆 Live Tracking - {train_no}"
+    )
+
+    # =====================================
+    # LIVE STATUS API
+    # =====================================
+
+    try:
+
+        live_response = requests.get(
+            f"{API_URL}/api/live/{train_no}"
+        )
+
+        live_data = (
+            live_response.json()
+        )
+
+    except Exception as e:
+
+        st.error(
+            f"Live API Error: {e}"
+        )
+
+        live_data = {}
+
+    # =====================================
+    # SCHEDULE API
+    # =====================================
+
+    try:
+
+        schedule_response = requests.get(
+            f"{API_URL}/api/schedule/{train_no}"
+        )
+
+        schedule_data = (
+            schedule_response.json()
+        )
+
+    except Exception as e:
+
+        st.error(
+            f"Schedule API Error: {e}"
+        )
+
+        schedule_data = {}
+
+    # =====================================
+    # LIVE INFO
+    # =====================================
+
+    current_station = (
+        live_data.get(
+            "current_station_name",
+            "Unknown"
+        )
+    )
+
+    next_station = (
+        live_data.get(
+            "next_station_name",
+            "Unknown"
+        )
+    )
+
+    delay = (
+        live_data.get(
+            "delay",
+            "0"
+        )
     )
 
     col1, col2, col3 = st.columns(3)
 
     col1.metric(
-        "Train",
-        data["trainNo"]
+        "Current Station",
+        current_station
     )
 
     col2.metric(
-        "Speed",
-        f"{data['speed']} km/h"
+        "Next Station",
+        next_station
     )
 
     col3.metric(
-        "Updated",
-        data["lastUpdated"]
+        "Delay",
+        f"{delay} min"
     )
 
     # =====================================
@@ -110,27 +257,30 @@ if st.session_state.train_data:
     # =====================================
 
     st.subheader(
-        "🗺️ Live Train Location"
+        "🗺️ Live Train Map"
     )
+
+    latitude = 12.9716
+    longitude = 77.5946
 
     m = folium.Map(
 
         location=[
-            data["latitude"],
-            data["longitude"]
+            latitude,
+            longitude
         ],
 
-        zoom_start=7
+        zoom_start=6
     )
 
     folium.Marker(
 
         [
-            data["latitude"],
-            data["longitude"]
+            latitude,
+            longitude
         ],
 
-        popup="🚆 Train Location"
+        popup=f"🚆 Train {train_no}"
 
     ).add_to(m)
 
@@ -139,6 +289,38 @@ if st.session_state.train_data:
         width=1200,
         height=500
     )
+
+    # =====================================
+    # STATION TIMELINE
+    # =====================================
+
+    st.subheader(
+        "📍 Station Timeline"
+    )
+
+    if "data" in schedule_data:
+
+        route = (
+            schedule_data["data"]
+            .get("route", [])
+        )
+
+        for station in route:
+
+            with st.container(border=True):
+
+                st.markdown(
+
+                    f"""
+                    ### 🚉 {station.get('station_name')}
+
+                    Arrival:
+                    {station.get('arrival_time')}
+
+                    Departure:
+                    {station.get('departure_time')}
+                    """
+                )
 
 # =========================================
 # AI ASSISTANT
@@ -171,7 +353,9 @@ if st.button("Ask AI"):
 
             data = response.json()
 
-            st.session_state.ai_reply = data["reply"]
+            st.session_state.ai_reply = (
+                data["reply"]
+            )
 
         else:
 
@@ -193,50 +377,4 @@ if st.session_state.ai_reply:
 
     st.info(
         st.session_state.ai_reply
-    )
-
-# =========================================
-# HISTORY
-# =========================================
-
-st.divider()
-
-st.subheader(
-    "📜 Train Search History"
-)
-
-if st.button("Load History"):
-
-    try:
-
-        response = requests.get(
-            f"{API_URL}/api/history"
-        )
-
-        if response.status_code == 200:
-
-            history = response.json()
-
-            st.session_state.history_data = history
-
-        else:
-
-            st.error(
-                "History request failed"
-            )
-
-    except Exception as e:
-
-        st.error(
-            f"History Error: {e}"
-        )
-
-# =========================================
-# SHOW HISTORY
-# =========================================
-
-if st.session_state.history_data:
-
-    st.dataframe(
-        st.session_state.history_data
     )

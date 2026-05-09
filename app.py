@@ -1,4 +1,3 @@
-
 from flask import Flask
 from flask import jsonify
 from flask import request
@@ -8,7 +7,9 @@ from flask_cors import CORS
 from mongo_db import train_collection
 
 from services.groq_service import ask_groq
-from services.train_service import get_train_data
+from services.railway_api import search_trains
+from services.railway_api import live_status
+from services.railway_api import train_schedule
 
 import os
 
@@ -30,24 +31,67 @@ def home():
     })
 
 # =========================================
+# SEARCH TRAINS BETWEEN STATIONS
+# =========================================
+
+@app.route("/api/search")
+
+def search_api():
+
+    try:
+
+        from_station = request.args.get("from")
+        to_station = request.args.get("to")
+
+        data = search_trains(
+            from_station,
+            to_station
+        )
+
+        return jsonify(data)
+
+    except Exception as e:
+
+        return jsonify({
+            "error": str(e)
+        }), 500
+
+# =========================================
 # LIVE TRAIN STATUS
 # =========================================
 
 @app.route("/api/live/<train_no>")
 
-def live_status(train_no):
+def live_api(train_no):
 
     try:
 
-        data = get_train_data(train_no)
+        data = live_status(train_no)
 
-        # Save into MongoDB
-        result = train_collection.insert_one(data)
+        train_collection.insert_one({
+            "trainNo": train_no,
+            "data": data
+        })
 
-        # Convert ObjectId to string
-        data["_id"] = str(
-            result.inserted_id
-        )
+        return jsonify(data)
+
+    except Exception as e:
+
+        return jsonify({
+            "error": str(e)
+        }), 500
+
+# =========================================
+# TRAIN SCHEDULE
+# =========================================
+
+@app.route("/api/schedule/<train_no>")
+
+def schedule_api(train_no):
+
+    try:
+
+        data = train_schedule(train_no)
 
         return jsonify(data)
 
@@ -71,9 +115,7 @@ def history():
 
         for item in train_collection.find():
 
-            item["_id"] = str(
-                item["_id"]
-            )
+            item["_id"] = str(item["_id"])
 
             history_data.append(item)
 
@@ -131,4 +173,3 @@ if __name__ == "__main__":
             )
         )
     )
-
