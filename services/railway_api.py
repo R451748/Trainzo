@@ -11,15 +11,15 @@ RAPID_API_KEY = os.getenv(
 
 HEADERS = {
 
-    "X-RapidAPI-Key":
+    "x-rapidapi-key":
         RAPID_API_KEY,
 
-    "X-RapidAPI-Host":
+    "x-rapidapi-host":
         "irctc1.p.rapidapi.com"
 }
 
 # =========================================
-# SEARCH TRAINS BETWEEN STATIONS
+# SEARCH TRAINS
 # =========================================
 
 def search_trains(
@@ -52,10 +52,12 @@ def search_trains(
         params=querystring
     )
 
+    print(response.text)
+
     return response.json()
 
 # =========================================
-# LIVE TRAIN STATUS
+# LIVE STATUS
 # =========================================
 
 def live_status(train_no):
@@ -82,6 +84,8 @@ def live_status(train_no):
 
         params=querystring
     )
+
+    print(response.text)
 
     return response.json()
 
@@ -110,5 +114,7 @@ def train_schedule(train_no):
 
         params=querystring
     )
+
+    print(response.text)
 
     return response.json()
