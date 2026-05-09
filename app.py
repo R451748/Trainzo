@@ -7,9 +7,12 @@ from flask_cors import CORS
 from mongo_db import train_collection
 
 from services.groq_service import ask_groq
-from services.railway_api import search_trains
-from services.railway_api import live_status
-from services.railway_api import train_schedule
+
+from services.railway_api import (
+    search_trains,
+    live_status,
+    train_schedule
+)
 
 import os
 
@@ -18,7 +21,7 @@ app = Flask(__name__)
 CORS(app)
 
 # =========================================
-# HOME ROUTE
+# HOME
 # =========================================
 
 @app.route("/")
@@ -31,19 +34,25 @@ def home():
     })
 
 # =========================================
-# SEARCH TRAINS BETWEEN STATIONS
+# SEARCH TRAINS
 # =========================================
 
 @app.route("/api/search")
 
-def search_api():
+def search():
 
     try:
 
-        from_station = request.args.get("from")
-        to_station = request.args.get("to")
+        from_station = request.args.get(
+            "from"
+        )
+
+        to_station = request.args.get(
+            "to"
+        )
 
         data = search_trains(
+
             from_station,
             to_station
         )
@@ -62,15 +71,14 @@ def search_api():
 
 @app.route("/api/live/<train_no>")
 
-def live_api(train_no):
+def live(train_no):
 
     try:
 
         data = live_status(train_no)
 
         train_collection.insert_one({
-            "trainNo": train_no,
-            "data": data
+            "trainNo": train_no
         })
 
         return jsonify(data)
@@ -87,7 +95,7 @@ def live_api(train_no):
 
 @app.route("/api/schedule/<train_no>")
 
-def schedule_api(train_no):
+def schedule(train_no):
 
     try:
 
@@ -102,33 +110,7 @@ def schedule_api(train_no):
         }), 500
 
 # =========================================
-# TRAIN HISTORY
-# =========================================
-
-@app.route("/api/history")
-
-def history():
-
-    try:
-
-        history_data = []
-
-        for item in train_collection.find():
-
-            item["_id"] = str(item["_id"])
-
-            history_data.append(item)
-
-        return jsonify(history_data)
-
-    except Exception as e:
-
-        return jsonify({
-            "error": str(e)
-        }), 500
-
-# =========================================
-# GROQ AI CHAT
+# GROQ AI
 # =========================================
 
 @app.route(
@@ -165,7 +147,9 @@ def groq_chat():
 if __name__ == "__main__":
 
     app.run(
+
         host="0.0.0.0",
+
         port=int(
             os.environ.get(
                 "PORT",

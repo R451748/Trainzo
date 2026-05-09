@@ -1,28 +1,15 @@
-
 import streamlit as st
 import requests
 import folium
 
 from streamlit_folium import st_folium
 
-# =========================================
-# BACKEND API URL
-# =========================================
-
 API_URL = "https://trainzo-backend-9umr.onrender.com"
-
-# =========================================
-# PAGE CONFIG
-# =========================================
 
 st.set_page_config(
     page_title="Where Is My Train",
     layout="wide"
 )
-
-# =========================================
-# TITLE
-# =========================================
 
 st.title("🚆 Where Is My Train")
 
@@ -40,11 +27,8 @@ if "trains" not in st.session_state:
 if "selected_train" not in st.session_state:
     st.session_state.selected_train = None
 
-if "ai_reply" not in st.session_state:
-    st.session_state.ai_reply = ""
-
 # =========================================
-# SEARCH STATIONS
+# SEARCH UI
 # =========================================
 
 col1, col2 = st.columns(2)
@@ -76,14 +60,17 @@ if st.button("🚆 Find Trains"):
             f"{API_URL}/api/search",
 
             params={
-                "from": from_station,
-                "to": to_station
+
+                "from":
+                    from_station,
+
+                "to":
+                    to_station
             }
         )
 
         data = response.json()
 
-        # DEBUG RESPONSE
         st.write(data)
 
         if "data" in data:
@@ -181,10 +168,6 @@ if st.session_state.selected_train:
         f"🚆 Live Tracking - {train_no}"
     )
 
-    # =====================================
-    # LIVE STATUS API
-    # =====================================
-
     try:
 
         live_response = requests.get(
@@ -195,6 +178,8 @@ if st.session_state.selected_train:
             live_response.json()
         )
 
+        st.write(live_data)
+
     except Exception as e:
 
         st.error(
@@ -203,80 +188,12 @@ if st.session_state.selected_train:
 
         live_data = {}
 
-    # =====================================
-    # SCHEDULE API
-    # =====================================
-
-    try:
-
-        schedule_response = requests.get(
-            f"{API_URL}/api/schedule/{train_no}"
-        )
-
-        schedule_data = (
-            schedule_response.json()
-        )
-
-    except Exception as e:
-
-        st.error(
-            f"Schedule API Error: {e}"
-        )
-
-        schedule_data = {}
-
-    # =====================================
-    # LIVE INFO
-    # =====================================
-
-    current_station = (
-        live_data.get(
-            "current_station_name",
-            "Unknown"
-        )
-    )
-
-    next_station = (
-        live_data.get(
-            "next_station_name",
-            "Unknown"
-        )
-    )
-
-    delay = (
-        live_data.get(
-            "delay",
-            "0"
-        )
-    )
-
-    col1, col2, col3 = st.columns(3)
-
-    col1.metric(
-        "Current Station",
-        current_station
-    )
-
-    col2.metric(
-        "Next Station",
-        next_station
-    )
-
-    col3.metric(
-        "Delay",
-        f"{delay} min"
-    )
-
-    # =====================================
-    # MAP
-    # =====================================
+    latitude = 12.9716
+    longitude = 77.5946
 
     st.subheader(
         "🗺️ Live Train Map"
     )
-
-    latitude = 12.9716
-    longitude = 77.5946
 
     m = folium.Map(
 
@@ -303,93 +220,4 @@ if st.session_state.selected_train:
         m,
         width=1200,
         height=500
-    )
-
-    # =====================================
-    # STATION TIMELINE
-    # =====================================
-
-    st.subheader(
-        "📍 Station Timeline"
-    )
-
-    if "data" in schedule_data:
-
-        route = (
-            schedule_data["data"]
-            .get("route", [])
-        )
-
-        for station in route:
-
-            with st.container(border=True):
-
-                st.markdown(
-
-                    f"""
-                    ### 🚉 {station.get('station_name')}
-
-                    Arrival:
-                    {station.get('arrival_time')}
-
-                    Departure:
-                    {station.get('departure_time')}
-                    """
-                )
-
-# =========================================
-# AI ASSISTANT
-# =========================================
-
-st.divider()
-
-st.subheader(
-    "🤖 AI Assistant"
-)
-
-question = st.text_input(
-    "Ask AI about train"
-)
-
-if st.button("Ask AI"):
-
-    try:
-
-        response = requests.post(
-
-            f"{API_URL}/api/groq",
-
-            json={
-                "question": question
-            }
-        )
-
-        if response.status_code == 200:
-
-            data = response.json()
-
-            st.session_state.ai_reply = (
-                data["reply"]
-            )
-
-        else:
-
-            st.error(
-                "AI request failed"
-            )
-
-    except Exception as e:
-
-        st.error(
-            f"AI Error: {e}"
-        )
-
-# =========================================
-# SHOW AI RESPONSE
-# =========================================
-
-if st.session_state.ai_reply:
-
-    st.info(
-        st.session_state.ai_reply
     )
