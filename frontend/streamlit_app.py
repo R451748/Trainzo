@@ -1,3 +1,4 @@
+
 import streamlit as st
 import requests
 import folium
@@ -62,6 +63,10 @@ with col2:
         placeholder="MAS"
     )
 
+# =========================================
+# FIND TRAINS
+# =========================================
+
 if st.button("🚆 Find Trains"):
 
     try:
@@ -76,24 +81,34 @@ if st.button("🚆 Find Trains"):
             }
         )
 
-        if response.status_code == 200:
+        data = response.json()
 
-            data = response.json()
+        # DEBUG RESPONSE
+        st.write(data)
 
-            if "data" in data:
+        if "data" in data:
 
-                st.session_state.trains = data["data"]
+            trains = data["data"]
+
+            if isinstance(
+                trains,
+                list
+            ):
+
+                st.session_state.trains = (
+                    trains
+                )
 
             else:
 
                 st.error(
-                    "No trains found"
+                    "Unexpected API format"
                 )
 
         else:
 
             st.error(
-                "Search failed"
+                "No trains found"
             )
 
     except Exception as e:
