@@ -15,11 +15,11 @@ HEADERS = {
         RAPID_API_KEY,
 
     "x-rapidapi-host":
-        "irctc1.p.rapidapi.com"
+        "irctc-api2.p.rapidapi.com"
 }
 
 # =========================================
-# SEARCH TRAINS
+# SEARCH TRAINS BETWEEN STATIONS
 # =========================================
 
 def search_trains(
@@ -30,8 +30,8 @@ def search_trains(
 ):
 
     url = (
-        "https://irctc1.p.rapidapi.com/"
-        "api/v3/trainBetweenStations"
+        "https://irctc-api2.p.rapidapi.com/"
+        "trainBetweenStations"
     )
 
     querystring = {
@@ -40,7 +40,10 @@ def search_trains(
             from_station,
 
         "toStationCode":
-            to_station
+            to_station,
+
+        "dateOfJourney":
+            "2026-05-10"
     }
 
     response = requests.get(
@@ -52,52 +55,17 @@ def search_trains(
         params=querystring
     )
 
-    print(response.text)
-
     return response.json()
 
 # =========================================
-# LIVE STATUS
+# LIVE TRAIN STATUS
 # =========================================
 
 def live_status(train_no):
 
     url = (
-        "https://irctc1.p.rapidapi.com/"
-        "api/v1/liveTrainStatus"
-    )
-
-    querystring = {
-
-        "trainNo":
-            train_no,
-
-        "startDay":
-            "1"
-    }
-
-    response = requests.get(
-
-        url,
-
-        headers=HEADERS,
-
-        params=querystring
-    )
-
-    print(response.text)
-
-    return response.json()
-
-# =========================================
-# TRAIN SCHEDULE
-# =========================================
-
-def train_schedule(train_no):
-
-    url = (
-        "https://irctc1.p.rapidapi.com/"
-        "api/v1/getTrainSchedule"
+        "https://irctc-api2.p.rapidapi.com/"
+        "liveTrainStatus"
     )
 
     querystring = {
@@ -115,6 +83,32 @@ def train_schedule(train_no):
         params=querystring
     )
 
-    print(response.text)
+    return response.json()
+
+# =========================================
+# TRAIN SCHEDULE
+# =========================================
+
+def train_schedule(train_no):
+
+    url = (
+        "https://irctc-api2.p.rapidapi.com/"
+        "trainSchedule"
+    )
+
+    querystring = {
+
+        "trainNo":
+            train_no
+    }
+
+    response = requests.get(
+
+        url,
+
+        headers=HEADERS,
+
+        params=querystring
+    )
 
     return response.json()
