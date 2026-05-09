@@ -11,15 +11,18 @@ RAPID_API_KEY = os.getenv(
 
 HEADERS = {
 
+    "Content-Type":
+        "application/json",
+
     "x-rapidapi-key":
         RAPID_API_KEY,
 
     "x-rapidapi-host":
-        "irctc-api2.p.rapidapi.com"
+        "irctc1.p.rapidapi.com"
 }
 
 # =========================================
-# TRAINS BETWEEN STATIONS
+# SEARCH TRAINS
 # =========================================
 
 def search_trains(
@@ -30,7 +33,7 @@ def search_trains(
 ):
 
     url = (
-        "https://irctc-api2.p.rapidapi.com/"
+        "https://irctc1.p.rapidapi.com/"
         "api/v3/trainBetweenStations"
     )
 
@@ -40,10 +43,7 @@ def search_trains(
             from_station,
 
         "toStationCode":
-            to_station,
-
-        "dateOfJourney":
-            "2026-05-10"
+            to_station
     }
 
     response = requests.get(
@@ -64,14 +64,17 @@ def search_trains(
 def live_status(train_no):
 
     url = (
-        "https://irctc-api2.p.rapidapi.com/"
+        "https://irctc1.p.rapidapi.com/"
         "api/v1/liveTrainStatus"
     )
 
     querystring = {
 
         "trainNo":
-            train_no
+            train_no,
+
+        "startDay":
+            "1"
     }
 
     response = requests.get(
@@ -92,8 +95,8 @@ def live_status(train_no):
 def train_schedule(train_no):
 
     url = (
-        "https://irctc-api2.p.rapidapi.com/"
-        "api/v1/trainSchedule"
+        "https://irctc1.p.rapidapi.com/"
+        "api/v1/getTrainSchedule"
     )
 
     querystring = {
